@@ -13,19 +13,32 @@ const prvRtName = envConfig.require("prv-rt-name");
 const pubRtName = envConfig.require("pub-rt-name");
 const subnets = envConfig.require("subnets");
 const vpcCIDR = envConfig.require("vpc-cidr");
+const pubCIDR = envConfig.require("pub-cidr");
 
 const vpc = new ec2.Vpc(vpcName, {
     cidrBlock: vpcCIDR,
+    instanceTenancy: "default",
     tags: {
         Name: vpcName,
     },
 });
 
+var subnetArray = []
+
+function init_subnets () {
+
+    var subnet_base = vpcCIDR.split('.')[0] + vpcCIDR('.')[1] + '.';
+
+    for (i = 1; i < parseInt(subnets); i++) {
+        
+        subnetArray.append(subnet_base + toString(parseInt(vpcCIDR.split('.')[3]) + i) + toString(parseInt(vpcCIDR.split('.')[4].split('/')) + 8));
+    }
+}
+
 const igw = new ec2.InternetGateway(igwName, {
     vpcId: vpc.id,
 });
 
-//var availabilityZones = ['us-east-1a', 'us-east-1b', 'us-east-1c']
 aws.getAvailabilityZones().then((availabilityZones)=> {
 
     const publicRouteTable = new ec2.MainRouteTableAssociation(publicRtAssocName, {
@@ -33,7 +46,7 @@ aws.getAvailabilityZones().then((availabilityZones)=> {
         routeTableId: new ec2.RouteTable(pubRtName, {
             vpcId: vpc.id,
             routes: [{
-                cidrBlock: "0.0.0.0/0",
+                cidrBlock: pubCIDR,
                 gatewayId: igw.id,
             }],
         }).id,
@@ -59,7 +72,7 @@ aws.getAvailabilityZones().then((availabilityZones)=> {
     
         let privateSubnets = new ec2.Subnet(`private-subnet-${i}`, {
             vpcId: vpc.id,
-            cidrBlock: `10.0.${i+subnets}.0/24`,
+            cidrBlock: `10.0.${i+parseInt(subnets)}.0/24`,
             mapPublicIpOnLaunch: false,
             availabilityZone: availabilityZones.names[i],
         });
