@@ -16,7 +16,6 @@ const vpcCIDR = envConfig.require("vpc-cidr");
 const pubCIDR = envConfig.require("pub-cidr");
 
 const amiName = envConfig.require("ami-name");
-const amiId = envConfig.require("ami-id");
 
 const publicSubnetIds = [];
 
@@ -27,20 +26,6 @@ const vpc = new ec2.Vpc(vpcName, {
     Name: vpcName,
   },
 });
-
-var subnetArray = [];
-
-function init_subnets() {
-  var subnet_base = vpcCIDR.split(".")[0] + vpcCIDR(".")[1] + ".";
-  
-  for (i = 1; i < parseInt(subnets); i++) {
-    subnetArray.append(
-      subnet_base +
-        toString(parseInt(vpcCIDR.split(".")[3]) + i) +
-        toString(parseInt(vpcCIDR.split(".")[4].split("/")) + 8)
-    );
-  }
-}
 
 const igw = new ec2.InternetGateway(igwName, {
   vpcId: vpc.id,
@@ -142,7 +127,7 @@ let ami = pulumi.output(
     filters: [
       {
         name: "name",
-        values: ["csye6225_*"],
+        values: [amiName + "_*"],
       },
     ],
     mostRecent: true,
@@ -152,7 +137,7 @@ let ami = pulumi.output(
 // Create and launch an Amazon Linux EC2 instance into the public subnet.
 const instance = new aws.ec2.Instance("instance", {
   ami: ami.id,
-  keyName: "Assignment5",
+  keyName: "Login_Assignment",
   instanceType: "t2.micro",
   subnetId: publicSubnetIds[0],
   vpcSecurityGroupIds: [appSecurityGroup.id],
