@@ -16,7 +16,6 @@ const pubCIDR = envConfig.require("pub-cidr");
 const rdsPass = envConfig.require("rds-password");
 
 const amiName = envConfig.require("ami-name");
-const userDataScript = envConfig.require("user-data-script");
 
 var rdsIP;
 
@@ -175,6 +174,36 @@ const createSubnets = async (availabilityZones) => {
       }
 }
 
+const getUserData = async () => {
+
+  return rdsInstance.endpoint.apply (endpoint => {
+    
+    const hostname = endpoint.split(':')[0];
+
+    return `#!/bin/bash  
+    cd /home/csye6225/webapp || exit
+    # Setting up the environment variables
+    echo 'DB_USERNAME = "csye6225"' >> .env
+    echo 'DB_PASSWORD = "A5tr0ngPa55w0rd"' >> .env
+    echo 'DB_DIALECT  = "mysql"' >> .env
+    echo 'DB_NAME     = "saiDB"' >> .env
+    sudo echo 'DB_IPADDRESS = "${hostname}"' >> .env        
+    
+    sudo npm i
+
+    sudo npm test    
+    cd .. 
+    sudo chown csye6225:csye6225 -R webapp
+
+    # Setting up the service
+    sudo systemctl daemon-reload
+    sudo systemctl enable csye6225
+    sudo systemctl start csye6225
+    sudo systemctl restart csye6225
+    sudo reboot
+    `
+  })
+} 
 const createEC2Instance = async () => {
 
   ami = pulumi.output(
@@ -189,25 +218,6 @@ const createEC2Instance = async () => {
     })
   );
 
-  console.log(userDataScript);
-
-  const userData = pulumi.all([rdsInstance.id, hostname]).apply(([id, endpoint]) => {
-
-    `
-      #!/bin/base         
-      sudo touch /opt/csye6225/.env
-      sudo chown admin /opt/csye6225/.env     
-      sudo echo 'DB_USERNAME = "csye6225"' >> /opt/csye6225/.env
-      sudo echo 'DB_PASSWORD = "A5tr0ngPa55w0rd"' >> /opt/csye6225/.env
-      sudo echo 'DB_DIALECT  = "mysql"' >> /opt/csye6225/.env
-      sudo echo 'DB_NAME     = "saiDB"' >> /opt/csye6225/.env
-      sudo echo 'DB_IPADDRESS= ${endpoint}' >> /opt/csye6225/.env
-      sudo systemctl daemon-reload
-      sudo systemctl enable csye6225
-      sudo systemctl start csye6225
-      sudo systemctl restart csye6225
-    `
-  }) 
 // Create and launch an Amazon Linux EC2 instance into the public subnet.
 instance = new ec2.Instance("instance", {
   ami: ami.id,
@@ -216,7 +226,7 @@ instance = new ec2.Instance("instance", {
   subnetId: publicSubnetList[0].id,
   vpcId: vpc.id,
   vpcSecurityGroupIds: [appSecurityGroup.id],
-  userData: userData,
+  userData: getUserData(),
 }, {dependsOn: [rdsInstance]});
 
 }
