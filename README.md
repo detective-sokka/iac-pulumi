@@ -3,6 +3,10 @@ Assignment 4 of CSYE6225
 
 This is the assignment 4 of Cloud computing where we will be implementing Infrastructure as Code using Pulumi. 
 
+This infrastructure deploys the following web app and Lambda function-
+- WebApp - https://github.com/detective-sokka/webapp
+- Lambda - https://github.com/detective-sokka/serverless
+
 # Setting up demo mode 
 
 ```
